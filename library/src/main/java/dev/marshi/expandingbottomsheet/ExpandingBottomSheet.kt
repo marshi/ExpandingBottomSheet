@@ -63,10 +63,10 @@ private const val ExpandedSheetAlpha = 0.96f
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ExpandingBottomSheet(
-    surfaceColor: (openFraction: Float) -> Color,
+    dynamicSurfaceColor: (openFraction: Float) -> Color,
     fabContent: @Composable BoxScope.((SheetState) -> Unit) -> Unit,
     bottomSheetContent: @Composable ColumnScope.() -> Unit,
-    appBar: @Composable ColumnScope.(Color, (SheetState) -> Unit) -> Unit,
+    appBar: @Composable ColumnScope.(openFraction: Float, (SheetState) -> Unit) -> Unit,
     content: @Composable () -> Unit,
 ) {
     BoxWithConstraints {
@@ -105,14 +105,14 @@ fun ExpandingBottomSheet(
             } else {
                 -sheetState.offset.value / dragRange
             }.coerceIn(0f, 1f)
-            val surfaceColorVal = surfaceColor(openFraction)
+            val surfaceColorVal = dynamicSurfaceColor(openFraction)
             content()
             BottomSheet(
                 openFraction = openFraction,
                 width = this@BoxWithConstraints.constraints.maxWidth.toFloat(),
                 height = this@BoxWithConstraints.constraints.maxHeight.toFloat(),
                 surfaceColor = surfaceColorVal,
-                appBar = { appBar(surfaceColorVal, ::updateSheet) },
+                appBar = { appBar(openFraction, ::updateSheet) },
                 fabContent = { fabContent(::updateSheet) },
                 bottomSheetContent = bottomSheetContent,
             )
@@ -251,7 +251,7 @@ private fun CourseDetailsPreview() {
         )
     }
     ExpandingBottomSheet(
-        surfaceColor = dynamicSurfaceColor,
+        dynamicSurfaceColor = dynamicSurfaceColor,
         fabContent = { updateSheet ->
             IconButton(
                 modifier = Modifier.align(Alignment.Center),
@@ -281,10 +281,11 @@ private fun CourseDetailsPreview() {
                 }
             }
         },
-        appBar = { surfaceColor, updateSheet ->
+        appBar = { openFraction, updateSheet ->
             val appBarElevation by animateDpAsState(if (scroll.isScrolled) 4.dp else 0.dp)
             println("elevation $appBarElevation")
-            val appBarColor = if (appBarElevation > 0.dp) surfaceColor else Color.Transparent
+            val appBarColor =
+                if (appBarElevation > 0.dp) dynamicSurfaceColor(openFraction) else Color.Transparent
             TopAppBar(
                 backgroundColor = appBarColor,
                 elevation = appBarElevation

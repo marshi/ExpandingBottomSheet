@@ -69,7 +69,7 @@ private fun ExpandingBottomSheetWrapper() {
         )
     }
     ExpandingBottomSheet(
-        surfaceColor = dynamicSurfaceColor,
+        dynamicSurfaceColor = dynamicSurfaceColor,
         fabContent = { updateSheet ->
             IconButton(
                 modifier = Modifier.align(Alignment.Center),
@@ -99,10 +99,10 @@ private fun ExpandingBottomSheetWrapper() {
                 }
             }
         },
-        appBar = { surfaceColor, updateSheet ->
+        appBar = { openFraction, updateSheet ->
             val appBarElevation by animateDpAsState(if (scroll.isScrolled) 4.dp else 0.dp)
             println("elevation $appBarElevation")
-            val appBarColor = if (appBarElevation > 0.dp) surfaceColor else Color.Transparent
+            val appBarColor = if (appBarElevation > 0.dp) dynamicSurfaceColor(openFraction) else Color.Transparent
             TopAppBar(
                 backgroundColor = appBarColor,
                 elevation = appBarElevation
