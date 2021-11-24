@@ -197,7 +197,7 @@ private val LazyListState.isScrolled: Boolean
 /**
  * Linearly interpolate between two [Float]s when the [fraction] is in a given range.
  */
-private fun lerp(
+fun lerp(
     startValue: Float,
     endValue: Float,
     @FloatRange(from = 0.0, to = 1.0) startFraction: Float,
@@ -210,7 +210,7 @@ private fun lerp(
     return lerp(startValue, endValue, (fraction - startFraction) / (endFraction - startFraction))
 }
 
-private fun lerp(
+fun lerp(
     startValue: Float,
     endValue: Float,
     @FloatRange(from = 0.0, to = 1.0) fraction: Float
@@ -218,7 +218,7 @@ private fun lerp(
     return startValue + fraction * (endValue - startValue)
 }
 
-private fun lerp(
+fun lerp(
     startColor: Color,
     endColor: Color,
     @FloatRange(from = 0.0, to = 1.0) startFraction: Float,
