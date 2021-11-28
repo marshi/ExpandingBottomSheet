@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.FloatRange
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,22 +19,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Divider
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FractionalThreshold
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
-import androidx.compose.material.contentColorFor
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.PlaylistPlay
-import androidx.compose.material.primarySurface
-import androidx.compose.material.rememberSwipeableState
-import androidx.compose.material.swipeable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,6 +42,7 @@ import kotlinx.coroutines.launch
 
 enum class SheetState {
     Closed,
+    SemiOpen,
     Open
 }
 
@@ -72,6 +62,7 @@ fun ExpandingBottomSheet(
         val sheetState = rememberSwipeableState(SheetState.Closed)
         val fabSize = with(LocalDensity.current) { FabSize.toPx() }
         val dragRange = constraints.maxHeight - fabSize
+        val semiDragRange = 60f
         val scope = rememberCoroutineScope()
 
         fun updateSheet(state: SheetState) {
@@ -93,10 +84,11 @@ fun ExpandingBottomSheet(
                 state = sheetState,
                 anchors = mapOf(
                     0f to SheetState.Closed,
+                    -semiDragRange to SheetState.SemiOpen,
                     -dragRange to SheetState.Open
                 ),
                 thresholds = { _, _ -> FractionalThreshold(0.5f) },
-                orientation = Orientation.Vertical
+                orientation = Orientation.Vertical,
             )
         ) {
             val openFraction = if (sheetState.offset.value.isNaN()) {
@@ -104,9 +96,11 @@ fun ExpandingBottomSheet(
             } else {
                 -sheetState.offset.value / dragRange
             }.coerceIn(0f, 1f)
+            val semiOpenFraction = (semiDragRange / dragRange).coerceIn(0f, 1f)
             val surfaceColorVal = dynamicSurfaceColor(openFraction)
             BottomSheet(
                 openFraction = openFraction,
+                semiOpenFraction = semiOpenFraction,
                 width = this@BoxWithConstraints.constraints.maxWidth.toFloat(),
                 height = this@BoxWithConstraints.constraints.maxHeight.toFloat(),
                 surfaceColor = surfaceColorVal,
@@ -122,6 +116,7 @@ fun ExpandingBottomSheet(
 @Composable
 private fun BottomSheet(
     openFraction: Float,
+    semiOpenFraction: Float,
     width: Float,
     height: Float,
     surfaceColor: Color = MaterialTheme.colors.surface,
@@ -133,7 +128,12 @@ private fun BottomSheet(
     val fabSize = with(LocalDensity.current) { FabSize.toPx() }
     val fabSheetHeight = fabSize + LocalWindowInsets.current.systemBars.bottom
     val offsetX = lerp(width - fabSize, 0f, 0f, 0.15f, openFraction)
-    val offsetY = lerp(height - fabSheetHeight, 0f, openFraction)
+    val offsetY = lerp(
+        startValue = height - fabSheetHeight,
+        endValue = 0f,
+        pendingFraction = semiOpenFraction,
+        fraction = openFraction
+    )
     val tlCorner = lerp(fabSize, 0f, 0f, 0.15f, openFraction)
 
     Surface(
@@ -205,15 +205,25 @@ fun lerp(
     if (fraction < startFraction) return startValue
     if (fraction > endFraction) return endValue
 
-    return lerp(startValue, endValue, (fraction - startFraction) / (endFraction - startFraction))
+    return lerp(
+        startValue = startValue,
+        endValue = endValue,
+        fraction = (fraction - startFraction) / (endFraction - startFraction)
+    )
 }
 
 fun lerp(
     startValue: Float,
     endValue: Float,
+    pendingFraction: Float = 0f,
     @FloatRange(from = 0.0, to = 1.0) fraction: Float
 ): Float {
-    return startValue + fraction * (endValue - startValue)
+    val f = if (fraction < pendingFraction) {
+        0f
+    } else {
+        (fraction - pendingFraction) / (1 - pendingFraction)
+    }
+    return startValue + f * (endValue - startValue)
 }
 
 fun lerp(

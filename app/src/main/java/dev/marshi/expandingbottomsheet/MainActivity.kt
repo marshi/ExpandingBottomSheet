@@ -27,11 +27,6 @@ import com.google.accompanist.insets.LocalWindowInsets
 import com.google.accompanist.insets.rememberInsetsPaddingValues
 import dev.marshi.expandingbottomsheet.ui.theme.ExpandingBottomSheetTheme
 
-enum class SheetState {
-    Closed,
-    Open
-}
-
 private val FabSize = 56.dp
 private const val ExpandedSheetAlpha = 0.96f
 
@@ -78,7 +73,7 @@ private fun ExpandingBottomSheetWrapper() {
         fabContent = { updateSheet ->
             IconButton(
                 modifier = Modifier.align(Alignment.Center),
-                onClick = { updateSheet(SheetState.Open) }
+                onClick = { updateSheet(SheetState.SemiOpen) }
             ) {
                 Icon(
                     imageVector = Icons.Rounded.PlaylistPlay,
