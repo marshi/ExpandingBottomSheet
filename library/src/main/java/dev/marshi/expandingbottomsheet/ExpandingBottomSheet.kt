@@ -126,6 +126,7 @@ private fun BottomSheet(
 ) {
     // Use the fraction that the sheet is open to drive the transformation from FAB -> Sheet
     val fabSize = with(LocalDensity.current) { FabSize.toPx() }
+    val radius = with(LocalDensity.current) { 24.dp.toPx() }
     val fabSheetHeight = fabSize + LocalWindowInsets.current.systemBars.bottom
     val offsetX = lerp(
         startValue = width - fabSize,
@@ -142,10 +143,10 @@ private fun BottomSheet(
         fraction = openFraction
     )
     val tlCorner = lerp(
-        startValue = fabSize,
+        startValue = radius,
         endValue = 0f,
-        startFraction = 0f,
-        endFraction = 0.15f,
+        startFraction = semiOpenFraction,
+        endFraction = semiOpenFraction + 0.15f,
         fraction = openFraction
     )
 
