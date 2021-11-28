@@ -38,9 +38,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ExpandingBottomSheetTheme {
-                Text(modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Gray), text = "aaiaiai")
+                Text(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Gray), text = "aaiaiai"
+                )
                 ExpandingBottomSheetWrapper()
             }
         }
@@ -70,10 +72,16 @@ private fun ExpandingBottomSheetWrapper() {
     }
     ExpandingBottomSheet(
         dynamicSurfaceColor = dynamicSurfaceColor,
-        fabContent = { updateSheet ->
+        fabContent = { currentState, updateSheet ->
             IconButton(
                 modifier = Modifier.align(Alignment.Center),
-                onClick = { updateSheet(SheetState.SemiOpen) }
+                onClick = {
+                    when (currentState) {
+                        SheetState.Closed -> updateSheet(SheetState.SemiOpen)
+                        SheetState.SemiOpen -> updateSheet(SheetState.Open)
+                        SheetState.Open -> {}
+                    }
+                }
             ) {
                 Icon(
                     imageVector = Icons.Rounded.PlaylistPlay,
@@ -99,7 +107,7 @@ private fun ExpandingBottomSheetWrapper() {
                 }
             }
         },
-        appBar = { openFraction, updateSheet ->
+        appBar = { openFraction, currentState, updateSheet ->
             val appBarElevation by animateDpAsState(if (scroll.isScrolled) 4.dp else 0.dp)
             val appBarColor =
                 if (appBarElevation > 0.dp) dynamicSurfaceColor(openFraction) else Color.Transparent
@@ -131,3 +139,8 @@ private fun ExpandingBottomSheetWrapper() {
     )
 }
 
+fun updateSheetState(updateSheet: (SheetState) -> Unit, currentState: SheetState) {
+    if (currentState == SheetState.Closed) {
+
+    }
+}

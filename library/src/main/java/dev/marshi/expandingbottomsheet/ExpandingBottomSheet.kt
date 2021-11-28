@@ -54,9 +54,9 @@ private const val ExpandedSheetAlpha = 0.96f
 @Composable
 fun ExpandingBottomSheet(
     dynamicSurfaceColor: (openFraction: Float) -> Color,
-    fabContent: @Composable BoxScope.((SheetState) -> Unit) -> Unit,
+    fabContent: @Composable BoxScope.(currentState: SheetState, (SheetState) -> Unit) -> Unit,
     bottomSheetContent: @Composable ColumnScope.() -> Unit,
-    appBar: @Composable ColumnScope.(openFraction: Float, (SheetState) -> Unit) -> Unit,
+    appBar: @Composable ColumnScope.(openFraction: Float, currentState: SheetState, (SheetState) -> Unit) -> Unit,
 ) {
     BoxWithConstraints {
         val sheetState = rememberSwipeableState(SheetState.Closed)
@@ -104,8 +104,8 @@ fun ExpandingBottomSheet(
                 width = this@BoxWithConstraints.constraints.maxWidth.toFloat(),
                 height = this@BoxWithConstraints.constraints.maxHeight.toFloat(),
                 surfaceColor = surfaceColorVal,
-                appBar = { appBar(openFraction, ::updateSheet) },
-                fabContent = { fabContent(::updateSheet) },
+                appBar = { appBar(openFraction, sheetState.currentValue, ::updateSheet) },
+                fabContent = { fabContent(sheetState.currentValue, ::updateSheet) },
                 bottomSheetContent = bottomSheetContent,
             )
         }
@@ -127,14 +127,27 @@ private fun BottomSheet(
     // Use the fraction that the sheet is open to drive the transformation from FAB -> Sheet
     val fabSize = with(LocalDensity.current) { FabSize.toPx() }
     val fabSheetHeight = fabSize + LocalWindowInsets.current.systemBars.bottom
-    val offsetX = lerp(width - fabSize, 0f, 0f, 0.15f, openFraction)
+    val offsetX = lerp(
+        startValue = width - fabSize,
+        endValue = 0f,
+        startFraction = 0f,
+        endFraction = 0.15f,
+        fraction = openFraction
+    )
     val offsetY = lerp(
         startValue = height - fabSheetHeight,
         endValue = 0f,
-        pendingFraction = semiOpenFraction,
+        startFraction = semiOpenFraction,
+        endFraction = 1f,
         fraction = openFraction
     )
-    val tlCorner = lerp(fabSize, 0f, 0f, 0.15f, openFraction)
+    val tlCorner = lerp(
+        startValue = fabSize,
+        endValue = 0f,
+        startFraction = 0f,
+        endFraction = 0.15f,
+        fraction = openFraction
+    )
 
     Surface(
         color = surfaceColor,
@@ -147,6 +160,7 @@ private fun BottomSheet(
     ) {
         BottomSheet(
             openFraction,
+            semiOpenFraction,
             appBar = appBar,
             bottomSheetContent = bottomSheetContent,
             fabContent = fabContent
@@ -157,6 +171,7 @@ private fun BottomSheet(
 @Composable
 private fun BottomSheet(
     openFraction: Float,
+    semiOpenFraction: Float,
     appBar: @Composable ColumnScope.() -> Unit,
     bottomSheetContent: @Composable ColumnScope.() -> Unit,
     fabContent: @Composable BoxScope.() -> Unit,
@@ -164,7 +179,13 @@ private fun BottomSheet(
 
     Box(modifier = Modifier.fillMaxWidth()) {
         // When sheet open, show a list of the lessons
-        val bottomSheetAlpha = lerp(0f, 1f, 0.2f, 0.8f, openFraction)
+        val bottomSheetAlpha = lerp(
+            startValue = 0f,
+            endValue = 1f,
+            startFraction = semiOpenFraction + 0.1f,
+            endFraction = semiOpenFraction + 0.8f,
+            fraction = openFraction
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -176,7 +197,13 @@ private fun BottomSheet(
         }
 
         // When sheet closed, show the FAB
-        val fabAlpha = lerp(1f, 0f, 0f, 0.15f, openFraction)
+        val fabAlpha = lerp(
+            startValue = 1f,
+            endValue = 0f,
+            startFraction = semiOpenFraction,
+            endFraction = semiOpenFraction + 0.15f,
+            fraction = openFraction
+        )
         Box(
             modifier = Modifier
                 .size(FabSize)
@@ -215,15 +242,9 @@ fun lerp(
 fun lerp(
     startValue: Float,
     endValue: Float,
-    pendingFraction: Float = 0f,
     @FloatRange(from = 0.0, to = 1.0) fraction: Float
 ): Float {
-    val f = if (fraction < pendingFraction) {
-        0f
-    } else {
-        (fraction - pendingFraction) / (1 - pendingFraction)
-    }
-    return startValue + f * (endValue - startValue)
+    return startValue + fraction * (endValue - startValue)
 }
 
 fun lerp(
@@ -260,7 +281,7 @@ private fun CourseDetailsPreview() {
     }
     ExpandingBottomSheet(
         dynamicSurfaceColor = dynamicSurfaceColor,
-        fabContent = { updateSheet ->
+        fabContent = { currentState, updateSheet ->
             IconButton(
                 modifier = Modifier.align(Alignment.Center),
                 onClick = { updateSheet(SheetState.Open) }
@@ -289,7 +310,7 @@ private fun CourseDetailsPreview() {
                 }
             }
         },
-        appBar = { openFraction, updateSheet ->
+        appBar = { openFraction, currentState, updateSheet ->
             val appBarElevation by animateDpAsState(if (scroll.isScrolled) 4.dp else 0.dp)
             println("elevation $appBarElevation")
             val appBarColor =
