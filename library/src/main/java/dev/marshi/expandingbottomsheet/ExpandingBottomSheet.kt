@@ -67,7 +67,6 @@ fun ExpandingBottomSheet(
     fabContent: @Composable BoxScope.((SheetState) -> Unit) -> Unit,
     bottomSheetContent: @Composable ColumnScope.() -> Unit,
     appBar: @Composable ColumnScope.(openFraction: Float, (SheetState) -> Unit) -> Unit,
-    content: @Composable () -> Unit,
 ) {
     BoxWithConstraints {
         val sheetState = rememberSwipeableState(SheetState.Closed)
@@ -106,7 +105,6 @@ fun ExpandingBottomSheet(
                 -sheetState.offset.value / dragRange
             }.coerceIn(0f, 1f)
             val surfaceColorVal = dynamicSurfaceColor(openFraction)
-            content()
             BottomSheet(
                 openFraction = openFraction,
                 width = this@BoxWithConstraints.constraints.maxWidth.toFloat(),
@@ -311,8 +309,6 @@ private fun CourseDetailsPreview() {
                 }
             }
         }
-    ) {
-        Text("aiueo")
-    }
+    )
 }
 

@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -41,6 +43,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ExpandingBottomSheetTheme {
+                Text(modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Gray), text = "aaiaiai")
                 ExpandingBottomSheetWrapper()
             }
         }
@@ -101,8 +106,8 @@ private fun ExpandingBottomSheetWrapper() {
         },
         appBar = { openFraction, updateSheet ->
             val appBarElevation by animateDpAsState(if (scroll.isScrolled) 4.dp else 0.dp)
-            println("elevation $appBarElevation")
-            val appBarColor = if (appBarElevation > 0.dp) dynamicSurfaceColor(openFraction) else Color.Transparent
+            val appBarColor =
+                if (appBarElevation > 0.dp) dynamicSurfaceColor(openFraction) else Color.Transparent
             TopAppBar(
                 backgroundColor = appBarColor,
                 elevation = appBarElevation
@@ -128,7 +133,6 @@ private fun ExpandingBottomSheetWrapper() {
                 }
             }
         }
-    ) {
-        Text("aiueo")
-    }
+    )
 }
+
