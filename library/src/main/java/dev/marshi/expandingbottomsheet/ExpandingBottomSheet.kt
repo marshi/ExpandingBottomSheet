@@ -47,6 +47,7 @@ enum class SheetState {
 }
 
 private val FabSize = 56.dp
+private val SemiOpenFabSize = 90.dp
 private const val ExpandedSheetAlpha = 0.96f
 
 // https://github.com/android/compose-samples/blob/bd546b0a021554adac82bb0d2996fc3e76b552f2/Owl/app/src/main/java/com/example/owl/ui/course/CourseDetails.kt#L138-L166
@@ -59,10 +60,13 @@ fun ExpandingBottomSheet(
     appBar: @Composable ColumnScope.(openFraction: Float, currentState: SheetState, (SheetState) -> Unit) -> Unit,
 ) {
     BoxWithConstraints {
+        val width = constraints.maxWidth.toFloat()
+        val height = constraints.maxHeight.toFloat()
         val sheetState = rememberSwipeableState(SheetState.Closed)
         val fabSize = with(LocalDensity.current) { FabSize.toPx() }
-        val dragRange = constraints.maxHeight - fabSize
-        val semiDragRange = 60f
+        val semiOpenFabSize = with(LocalDensity.current) { SemiOpenFabSize.toPx() }
+        val dragRange = height - fabSize + width - fabSize
+        val semiDragRange = semiOpenFabSize - fabSize
         val scope = rememberCoroutineScope()
 
         fun updateSheet(state: SheetState) {
@@ -101,8 +105,8 @@ fun ExpandingBottomSheet(
             BottomSheet(
                 openFraction = openFraction,
                 semiOpenFraction = semiOpenFraction,
-                width = this@BoxWithConstraints.constraints.maxWidth.toFloat(),
-                height = this@BoxWithConstraints.constraints.maxHeight.toFloat(),
+                width = width,
+                height = height,
                 surfaceColor = surfaceColorVal,
                 appBar = { appBar(openFraction, sheetState.currentValue, ::updateSheet) },
                 fabContent = { fabContent(sheetState.currentValue, ::updateSheet) },
@@ -136,12 +140,13 @@ private fun BottomSheet(
         fraction = openFraction
     )
     val offsetY = lerp(
-        startValue = height - fabSheetHeight,
+        startValue = height - fabSize,
         endValue = 0f,
         startFraction = semiOpenFraction,
         endFraction = 1f,
         fraction = openFraction
     )
+    println("offsety: $openFraction, $semiOpenFraction, ${height - fabSize}, $offsetY")
     val tlCorner = lerp(
         startValue = radius,
         endValue = 0f,
