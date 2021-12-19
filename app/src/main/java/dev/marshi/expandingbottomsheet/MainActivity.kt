@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.PlaylistPlay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,8 +27,8 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.LocalWindowInsets
 import com.google.accompanist.insets.rememberInsetsPaddingValues
 import dev.marshi.expandingbottomsheet.ui.theme.ExpandingBottomSheetTheme
+import kotlinx.coroutines.launch
 
-private val FabSize = 56.dp
 private const val ExpandedSheetAlpha = 0.96f
 
 private val LazyListState.isScrolled: Boolean
@@ -57,6 +58,7 @@ fun ExpandingBottomSheetPreview() {
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun ExpandingBottomSheetWrapper() {
     val scroll = rememberLazyListState()
@@ -70,15 +72,20 @@ private fun ExpandingBottomSheetWrapper() {
             fraction = openFraction
         )
     }
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberSwipeableState(initialValue = SheetState.Closed)
     ExpandingBottomSheet(
+        fabSize = 56.dp,
+        semiOpenFabSize = 90.dp,
         dynamicSurfaceColor = dynamicSurfaceColor,
-        fabContent = { currentState, updateSheet ->
+        sheetState = sheetState,
+        fabContent = {
             IconButton(
                 modifier = Modifier.align(Alignment.Center),
                 onClick = {
-                    when (currentState) {
-                        SheetState.Closed -> updateSheet(SheetState.SemiOpen)
-                        SheetState.SemiOpen -> updateSheet(SheetState.Open)
+                    when (sheetState.currentValue) {
+                        SheetState.Closed -> scope.launch { sheetState.animateTo(SheetState.SemiOpen) }
+                        SheetState.SemiOpen -> scope.launch { sheetState.animateTo(SheetState.Open) }
                         SheetState.Open -> {}
                     }
                 }
@@ -107,10 +114,13 @@ private fun ExpandingBottomSheetWrapper() {
                 }
             }
         },
-        appBar = { openFraction, currentState, updateSheet ->
+        appBar = { openFraction ->
             val appBarElevation by animateDpAsState(if (scroll.isScrolled) 4.dp else 0.dp)
-            val appBarColor =
-                if (appBarElevation > 0.dp) dynamicSurfaceColor(openFraction) else Color.Transparent
+            val appBarColor = if (appBarElevation > 0.dp) {
+                dynamicSurfaceColor(openFraction)
+            } else {
+                Color.Transparent
+            }
             TopAppBar(
                 backgroundColor = appBarColor,
                 elevation = appBarElevation
@@ -126,7 +136,9 @@ private fun ExpandingBottomSheetWrapper() {
                         .align(Alignment.CenterVertically)
                 )
                 IconButton(
-                    onClick = { updateSheet(SheetState.Closed) },
+                    onClick = {
+                        scope.launch { sheetState.animateTo(SheetState.Closed) }
+                    },
                     modifier = Modifier.align(Alignment.CenterVertically)
                 ) {
                     Icon(
@@ -137,10 +149,4 @@ private fun ExpandingBottomSheetWrapper() {
             }
         }
     )
-}
-
-fun updateSheetState(updateSheet: (SheetState) -> Unit, currentState: SheetState) {
-    if (currentState == SheetState.Closed) {
-
-    }
 }

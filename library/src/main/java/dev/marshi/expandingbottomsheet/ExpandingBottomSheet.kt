@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.FloatRange
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,6 +33,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.insets.LocalWindowInsets
 import com.google.accompanist.insets.rememberInsetsPaddingValues
@@ -46,34 +46,30 @@ enum class SheetState {
     Open
 }
 
-private val FabSize = 56.dp
-private val SemiOpenFabSize = 90.dp
 private const val ExpandedSheetAlpha = 0.96f
 
 // https://github.com/android/compose-samples/blob/bd546b0a021554adac82bb0d2996fc3e76b552f2/Owl/app/src/main/java/com/example/owl/ui/course/CourseDetails.kt#L138-L166
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ExpandingBottomSheet(
+    fabSize: Dp,
+    semiOpenFabSize: Dp,
+    sheetState: SwipeableState<SheetState>,
     dynamicSurfaceColor: (openFraction: Float) -> Color,
-    fabContent: @Composable BoxScope.(currentState: SheetState, (SheetState) -> Unit) -> Unit,
+    fabContent: @Composable BoxScope.() -> Unit,
     bottomSheetContent: @Composable ColumnScope.() -> Unit,
-    appBar: @Composable ColumnScope.(openFraction: Float, currentState: SheetState, (SheetState) -> Unit) -> Unit,
+    appBar: @Composable ColumnScope.(openFraction: Float) -> Unit,
 ) {
+    require(fabSize < semiOpenFabSize)
+
     BoxWithConstraints {
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
-        val sheetState = rememberSwipeableState(SheetState.Closed)
-        val fabSize = with(LocalDensity.current) { FabSize.toPx() }
-        val semiOpenFabSize = with(LocalDensity.current) { SemiOpenFabSize.toPx() }
-        val dragRange = height - fabSize + width - fabSize
-        val semiDragRange = semiOpenFabSize - fabSize
+        val fabSizePx = with(LocalDensity.current) { fabSize.toPx() }
+        val semiOpenFabSizePx = with(LocalDensity.current) { semiOpenFabSize.toPx() }
+        val dragRange = height - fabSizePx + width - fabSizePx
+        val semiDragRange = semiOpenFabSizePx - fabSizePx
         val scope = rememberCoroutineScope()
-
-        fun updateSheet(state: SheetState) {
-            scope.launch {
-                sheetState.animateTo(state)
-            }
-        }
 
         BackHandler(
             enabled = sheetState.currentValue == SheetState.Open,
@@ -103,13 +99,14 @@ fun ExpandingBottomSheet(
             val semiOpenFraction = (semiDragRange / dragRange).coerceIn(0f, 1f)
             val surfaceColorVal = dynamicSurfaceColor(openFraction)
             BottomSheet(
+                fabSize = fabSize,
                 openFraction = openFraction,
                 semiOpenFraction = semiOpenFraction,
                 width = width,
                 height = height,
                 surfaceColor = surfaceColorVal,
-                appBar = { appBar(openFraction, sheetState.currentValue, ::updateSheet) },
-                fabContent = { fabContent(sheetState.currentValue, ::updateSheet) },
+                appBar = { appBar(openFraction) },
+                fabContent = { fabContent() },
                 bottomSheetContent = bottomSheetContent,
             )
         }
@@ -119,6 +116,7 @@ fun ExpandingBottomSheet(
 
 @Composable
 private fun BottomSheet(
+    fabSize: Dp,
     openFraction: Float,
     semiOpenFraction: Float,
     width: Float,
@@ -129,17 +127,17 @@ private fun BottomSheet(
     bottomSheetContent: @Composable ColumnScope.() -> Unit,
 ) {
     // Use the fraction that the sheet is open to drive the transformation from FAB -> Sheet
-    val fabSize = with(LocalDensity.current) { FabSize.toPx() }
+    val fabSizePx = with(LocalDensity.current) { fabSize.toPx() }
     val radius = with(LocalDensity.current) { 24.dp.toPx() }
     val offsetX = lerp(
-        startValue = width - fabSize,
+        startValue = width - fabSizePx,
         endValue = 0f,
         startFraction = 0f,
         endFraction = 0.15f,
         fraction = openFraction
     )
     val offsetY = lerp(
-        startValue = height - fabSize,
+        startValue = height - fabSizePx,
         endValue = 0f,
         startFraction = semiOpenFraction,
         endFraction = 1f,
@@ -163,8 +161,9 @@ private fun BottomSheet(
         }
     ) {
         BottomSheet(
-            openFraction,
-            semiOpenFraction,
+            fabSize = fabSize,
+            openFraction = openFraction,
+            semiOpenFraction = semiOpenFraction,
             appBar = appBar,
             bottomSheetContent = bottomSheetContent,
             fabContent = fabContent
@@ -174,6 +173,7 @@ private fun BottomSheet(
 
 @Composable
 private fun BottomSheet(
+    fabSize: Dp,
     openFraction: Float,
     semiOpenFraction: Float,
     appBar: @Composable ColumnScope.() -> Unit,
@@ -210,7 +210,7 @@ private fun BottomSheet(
         )
         Box(
             modifier = Modifier
-                .size(FabSize)
+                .size(fabSize)
                 .padding(start = 16.dp, top = 8.dp) // visually center contents
                 .graphicsLayer { alpha = fabAlpha }
         ) {
@@ -269,6 +269,7 @@ fun lerp(
 }
 
 
+@OptIn(ExperimentalMaterialApi::class)
 @Preview(name = "preview")
 @Composable
 private fun CourseDetailsPreview() {
@@ -283,12 +284,17 @@ private fun CourseDetailsPreview() {
             fraction = openFraction
         )
     }
+    val sheetState = rememberSwipeableState(SheetState.Closed)
+    val scope = rememberCoroutineScope()
     ExpandingBottomSheet(
+        fabSize = 56.dp,
+        semiOpenFabSize = 90.dp,
+        sheetState = sheetState,
         dynamicSurfaceColor = dynamicSurfaceColor,
-        fabContent = { currentState, updateSheet ->
+        fabContent = {
             IconButton(
                 modifier = Modifier.align(Alignment.Center),
-                onClick = { updateSheet(SheetState.Open) }
+                onClick = { scope.launch { sheetState.animateTo(SheetState.Open) } }
             ) {
                 Icon(
                     imageVector = Icons.Rounded.PlaylistPlay,
@@ -314,7 +320,7 @@ private fun CourseDetailsPreview() {
                 }
             }
         },
-        appBar = { openFraction, currentState, updateSheet ->
+        appBar = { openFraction ->
             val appBarElevation by animateDpAsState(if (scroll.isScrolled) 4.dp else 0.dp)
             println("elevation $appBarElevation")
             val appBarColor =
@@ -334,7 +340,7 @@ private fun CourseDetailsPreview() {
                         .align(Alignment.CenterVertically)
                 )
                 IconButton(
-                    onClick = { updateSheet(SheetState.Closed) },
+                    onClick = { scope.launch { sheetState.animateTo(SheetState.Closed) } },
                     modifier = Modifier.align(Alignment.CenterVertically)
                 ) {
                     Icon(
